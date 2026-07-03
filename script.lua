@@ -47,16 +47,10 @@ userInfo = {
 		["5.56"] = {
 			-- Súng              Chế độ      Hệ số       Hệ số ngồi
 			{ "M416",           1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + báng súng + băng mở rộng | Komp + Reddot + Triangular grip + Gunstock + Mag
-			{ "SCAR-L",         1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + băng mở rộng | Komp + Reddot + Triangular grip + Mag
-			{ "QBZ",            1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + băng mở rộng | Komp + Reddot + Triangular grip + Mag
-			{ "G36C",           1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + băng mở rộng | Komp + Reddot + Triangular grip + Mag
-			{ "M16A4",          2,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + báng súng + băng mở rộng | Komp + Reddot + Gunstock + Mag
 		},
 		["7.62"] = {
 			-- Súng              Chế độ      Hệ số       Hệ số ngồi
-			{ "AKM",            1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + băng mở rộng | Komp + Reddot + Mag
 			{ "Beryl M762",     1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + băng mở rộng | Komp + Reddot + Triangular grip + Mag
-			{ "DP-28",          0,          1,          0.8 }, -- Kính cơ bản | Reddot
 		},
 	},
 
