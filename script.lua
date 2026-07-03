@@ -42,8 +42,6 @@ userInfo = {
 	},
 
 	canUse = {
-		[".45"] = {},
-		["9mm"] = {},
 		["5.56"] = {
 			-- Súng              Chế độ      Hệ số       Hệ số ngồi
 			{ "M416",           1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + báng súng + băng mở rộng | Komp + Reddot + Triangular grip + Gunstock + Mag
@@ -68,14 +66,10 @@ userInfo = {
 -- internal configuration
 pubg = {
 	gun = {
-		[".45"] = {},
-		["9mm"] = {},
 		["5.56"] = {},
 		["7.62"] = {},
 	}, -- Kho súng
 	gunOptions = {
-		[".45"] = {},
-		["9mm"] = {},
 		["5.56"] = {},
 		["7.62"] = {},
 	}, -- Kho cấu hình
@@ -152,35 +146,6 @@ function pubg.isAimingState (mode)
 	return switch[mode]()
 end
 
-pubg["M16A4"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 108,
-		ballistic = {
-			{1, 0},
-			{5, 20},
-			{40, 24},
-		}
-	})
-
-end
-
-pubg["SCAR-L"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 96,
-		ballistic = {
-			{1, 0},
-			{2, 30},
-			{5, 20},
-			{10, 24},
-			{15, 28},
-			{40, 32},
-		}
-	})
-
-end
-
 pubg["Beryl M762"] = function (gunName)
 
 	return pubg.execOptions(gunName, {
@@ -194,101 +159,6 @@ pubg["Beryl M762"] = function (gunName)
 			{15, 45},
 			{30, 47},
 			{40, 51},
-		}
-	})
-
-end
-
-pubg["Tommy Gun"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 84,
-		ballistic = {
-			{1, 0},
-			{3, 20},
-			{6, 21},
-			{8, 24},
-			{10, 30},
-			{15, 40},
-			{50, 45},
-		}
-	})
-
-end
-
-pubg["G36C"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 86,
-		ballistic = {
-			{1, 0},
-			{2, 40},
-			{5, 16},
-			{10, 26},
-			{15, 30},
-			{20, 34},
-			{40, 36},
-		}
-	})
-
-end
-
-pubg["Vector"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 55,
-		ballistic = {
-			{1, 0},
-			{6, 16},
-			{10, 20},
-			{13, 24},
-			{15, 28},
-			{20, 32},
-			{33, 34},
-		}
-	})
-
-end
-
-pubg["Micro UZI"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 46,
-		ballistic = {
-			{1, 0},
-			{2, 13},
-			{10, 12},
-			{15, 20},
-			{35, 30},
-		}
-	})
-
-end
-
-pubg["UMP45"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 94,
-		ballistic = {
-			{1, 0},
-			{5, 18},
-			{15, 30},
-			{35, 32},
-		}
-	})
-
-end
-
-pubg["AKM"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 99,
-		ballistic = {
-			{1, 0},
-			{2, 42},
-			{5, 25},
-			{10, 32},
-			{40, 40},
 		}
 	})
 
@@ -311,40 +181,9 @@ pubg["M416"] = function (gunName)
 
 end
 
-pubg["QBZ"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 92,
-		ballistic = {
-			{1, 0},
-			{2, 34},
-			{5, 18},
-			{10, 22},
-			{15, 32},
-			{20, 34},
-			{40, 36},
-		}
-	})
-
-end
-
-pubg["DP-28"] = function (gunName)
-
-	return pubg.execOptions(gunName, {
-		interval = 100,
-		ballistic = {
-			{1, 0},
-			{2, 30},
-			{5, 20},
-			{47, 30},
-		}
-	})
-
-end
-
 -- [[Tìm mục trong canUse theo tên súng]]
 function pubg.canUseFindByGunName (gunName)
-	local forList = { ".45", "9mm", "5.56", "7.62" }
+	local forList = { "5.56", "7.62" }
 
 	for i = 1, #forList do
 		local bulletType = forList[i]
@@ -427,7 +266,7 @@ end
 function pubg.init ()
 
 	-- Clean up the firearms Depot
-	local forList = { ".45", "9mm", "5.56", "7.62" }
+	local forList = { "5.56", "7.62" }
 
 	for i = 1, #forList do
 
@@ -551,7 +390,7 @@ function pubg.setBulletType (bulletType)
 	pubg.gunIndex = 1
 	pubg.allCanUse_index = 0
 
-	local forList = { ".45", "9mm", "5.56", "7.62" }
+	local forList = { "5.56", "7.62" }
 
 	for i = 1, #forList do
 		local type = forList[i]
@@ -574,7 +413,7 @@ end
 --[[ set current gun ]]
 function pubg.setGun (gunName)
 
-	local forList = { ".45", "9mm", "5.56", "7.62" }
+	local forList = { "5.56", "7.62" }
 	local allCanUse_index = 0
 
 	for i = 1, #forList do
@@ -656,188 +495,11 @@ function pubg.randomOffset (val, offsetScopePx)
 	)
 end
 
---[[ Loot box một phím, chỉ nhặt các vật phẩm vào balo, không nhặt được đồ cần trang bị ]]
-function pubg.fastLickBox ()
-	PressAndReleaseKey("lshift")
-	PressAndReleaseKey("lctrl")
-	PressAndReleaseKey("lalt")
-	PressAndReleaseKey("rshift")
-	PressAndReleaseKey("rctrl")
-	PressAndReleaseKey("ralt")
-	PressAndReleaseKey("tab")
-	Sleep(20 + pubg.sleep)
-	PressAndReleaseMouseButton(1)
-
-	local lastItemCp = {
-		300 / 2560 * 65535,
-		1210 / 1440 * 65535
-	}
-	local itemHeight = 83 / 1440 * 65535
-
-	-- Lặp lại thao tác 3 lần để tăng tỷ lệ nhặt thành công
-	for i = 1, 3 do
-		for j = 1, 13 do
-			MoveMouseTo(
-				pubg.randomOffset(lastItemCp[1]),
-				pubg.randomOffset(lastItemCp[2] - itemHeight * (j - 1))
-			)
-			PressMouseButton(1)
-			MoveMouseTo(
-				pubg.randomOffset(670 / 2560 * 65535, 50),
-				pubg.randomOffset(710 / 1440 * 65535, 50)
-			) -- Đổi thành tọa độ của balo
-			ReleaseMouseButton(1)
-			Sleep(10 + pubg.sleep)
-		end
-	end
-
-	Sleep(20 + pubg.sleep)
-	MoveMouseTo(
-		pubg.randomOffset(lastItemCp[1]),
-		pubg.randomOffset(lastItemCp[2])
-	)
-	PressAndReleaseKey("tab")
-end
-
---[[ Nhặt đồ một phím, hỗ trợ mọi độ phân giải ]]
-function pubg.fastPickup ()
-	PressAndReleaseKey("lshift")
-	PressAndReleaseKey("lctrl")
-	PressAndReleaseKey("lalt")
-	PressAndReleaseKey("rshift")
-	PressAndReleaseKey("rctrl")
-	PressAndReleaseKey("ralt")
-	PressAndReleaseKey("tab")
-	Sleep(20 + pubg.sleep)
-	PressAndReleaseMouseButton(1)
-
-	local lastItemCp = {
-		300 / 2560 * 65535,
-		1210 / 1440 * 65535
-	}
-	local itemHeight = 83 / 1440 * 65535
-
-	-- Lặp lại thao tác 3 lần để tăng tỷ lệ nhặt thành công
-	for i = 1, 3 do
-		for j = 1, 13 do
-			MoveMouseTo(
-				pubg.randomOffset(lastItemCp[1]),
-				pubg.randomOffset(lastItemCp[2] - itemHeight * (j - 1))
-			)
-			PressMouseButton(1)
-			MoveMouseTo(
-				pubg.randomOffset(32767, 100),
-				pubg.randomOffset(32767, 100)
-			)
-			ReleaseMouseButton(1)
-			Sleep(10 + pubg.sleep)
-		end
-	end
-
-	Sleep(20 + pubg.sleep)
-	MoveMouseTo(
-		pubg.randomOffset(lastItemCp[1]),
-		pubg.randomOffset(lastItemCp[2])
-	)
-	PressAndReleaseKey("tab")
-end
-
---[[ Xả sạch balo, dù chết cũng để địch chỉ loot được hộp rỗng! ]]
-function pubg.fastDiscard ()
-	PressAndReleaseKey("lshift")
-	PressAndReleaseKey("lctrl")
-	PressAndReleaseKey("lalt")
-	PressAndReleaseKey("rshift")
-	PressAndReleaseKey("rctrl")
-	PressAndReleaseKey("ralt")
-	PressAndReleaseKey("tab")
-	Sleep(10 + pubg.sleep)
-	PressAndReleaseMouseButton(1)
-	local lastItemCp = {
-		630 / 2560 * 65535,
-		1210 / 1440 * 65535
-	}
-	local itemHeight = 83 / 1440 * 65535
-	-- Dọn sạch balo vòng 1
-	Sleep(10 + pubg.sleep)
-	for i = 1, 5 do
-		for j = 1, 13 do
-			MoveMouseTo(
-				pubg.randomOffset(lastItemCp[1]),
-				pubg.randomOffset(lastItemCp[2] - itemHeight * (j - 1))
-			)
-			PressMouseButton(1)
-			MoveMouseTo(0, 0)
-			ReleaseMouseButton(1)
-		end
-	end
-	-- Dọn sạch vũ khí
-	Sleep(10 + pubg.sleep)
-	local itemPos = {
-		{ 1770, 180 },
-		{ 1770, 480 },
-		{ 1770, 780 },
-		{ 1770, 1050 },
-		{ 2120, 1050 }
-	}
-	for i = 1, #itemPos do
-		MoveMouseTo(
-			pubg.randomOffset(itemPos[i][1] / 2560 * 65535),
-			pubg.randomOffset(itemPos[i][2] / 1440 * 65535)
-		)
-		PressAndReleaseMouseButton(3)
-	end
-	-- Dọn sạch balo vòng 2
-	Sleep(10 + pubg.sleep)
-	for i = 1, 5 do
-		for j = 1, 13 do
-			MoveMouseTo(
-				pubg.randomOffset(lastItemCp[1]),
-				pubg.randomOffset(lastItemCp[2] - itemHeight * (j - 1))
-			)
-			PressMouseButton(1)
-			MoveMouseTo(0, 0)
-			ReleaseMouseButton(1)
-		end
-	end
-	-- Dọn sạch trang bị
-	Sleep(10 + pubg.sleep)
-	local itemPos2 = {
-		{ 900, 392 },
-		{ 900, 630 },
-		{ 900, 720 },
-		{ 900, 808 },
-		{ 1605, 397 },
-		{ 1605, 481 },
-		{ 1605, 632 },
-		{ 1605, 719 },
-		{ 1605, 807 },
-		{ 1605, 1049 },
-		{ 1605, 1229 }
-	}
-	for i = 1, #itemPos2 do
-		MoveMouseTo(
-			pubg.randomOffset(itemPos2[i][1] / 2560 * 65535),
-			pubg.randomOffset(itemPos2[i][2] / 1440 * 65535)
-		)
-		-- Sleep(300 + pubg.sleep)
-		PressAndReleaseMouseButton(3)
-	end
-	Sleep(10 + pubg.sleep)
-	MoveMouseTo(
-		pubg.randomOffset(lastItemCp[1]),
-		pubg.randomOffset(lastItemCp[2])
-	)
-	PressAndReleaseKey("tab")
-end
-
 --[[ G key command binding ]]
 function pubg.runCmd (cmd)
 	if cmd == "" then cmd = "none" end
 	local switch = {
 		["none"] = function () end,
-		[".45"] = pubg.setBulletType,
-		["9mm"] = pubg.setBulletType,
 		["5.56"] = pubg.setBulletType,
 		["7.62"] = pubg.setBulletType,
 		["scopeX1"] = pubg.setScope,
@@ -845,27 +507,8 @@ function pubg.runCmd (cmd)
 		["scopeX3"] = pubg.setScope,
 		["scopeX4"] = pubg.setScope,
 		["scopeX6"] = pubg.setScope,
-		["UMP45"] = pubg.setGun,
-		["Tommy Gun"] = pubg.setGun,
-		["Vector"] = pubg.setGun,
-		["Micro UZI"] = pubg.setGun,
 		["M416"] = pubg.setGun,
-		["SCAR-L"] = pubg.setGun,
-		["QBZ"] = pubg.setGun,
-		["G36C"] = pubg.setGun,
-		["M16A4"] = pubg.setGun,
-		["AKM"] = pubg.setGun,
 		["Beryl M762"] = pubg.setGun,
-		["DP-28"] = pubg.setGun,
-		["first"] = pubg.findInSeries,
-		["next"] = pubg.findInSeries,
-		["last"] = pubg.findInSeries,
-		["first_in_canUse"] = pubg.findInCanUse,
-		["next_in_canUse"] = pubg.findInCanUse,
-		["last_in_canUse"] = pubg.findInCanUse,
-		["fast_pickup"] = pubg.fastPickup,
-		["fast_discard"] = pubg.fastDiscard,
-		["fast_lick_box"] = pubg.fastLickBox,
 		["toggle"] = function ()
 			pubg.changeIsStart(not pubg.isStart)
 		end,
@@ -906,7 +549,7 @@ end
 
 --[[ Output switching table ]]
 function pubg.outputLogGunSwitchTable ()
-	local forList = { ".45", "9mm", "5.56", "7.62" }
+	local forList = { "5.56", "7.62" }
 	local allCount = 0
 	local resStr = "      canUse_i\t      series_i\t      Series\t      ratio\t      ctrl ratio\t      Gun Name\n\n"
 
