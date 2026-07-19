@@ -1,5 +1,5 @@
 userInfo = {
-	debug = 0,
+	debug = 1,
 
 	cpuLoad = 2,
 
@@ -23,11 +23,14 @@ userInfo = {
 	-- Auto aim, leave blank without auto aim, set as the key on the keyboard when using.
 	autoPressAimKey = "",
 
+	-- Always-on recoil mode: when true, recoil control only depends on script ON + left mouse hold.
+	alwaysOnRecoil = true,
+
 	-- Điều khiển bật/tắt (capslock - dùng phím Caps Lock | numlock - dùng Num Lock | G_bind - dùng lệnh) | Start up control
 	startControl = "G_bind",
 
-	-- Thiết lập ngắm (default - dùng thiết lập mặc định của game | recommend - dùng thiết lập khuyến nghị của script | custom - tự định nghĩa | ctrlmode - chế độ ngồi) | Aiming setting
-	aimingSettings = "recommend",
+	-- Thiết lập ngắm (always - luôn chạy chống giật khi script ON | default - giữ chuột phải | toggle - bấm bật/tắt ngắm | recommend - dùng thiết lập khuyến nghị của script | custom - tự định nghĩa | ctrlmode - chế độ ngồi) | Aiming setting
+	aimingSettings = "always",
 
 	-- Khi aimingSettings = "custom", cần đặt điều kiện tự định nghĩa ở đây, thường dùng cùng IsMouseButtonPressed hoặc IsModifierPressed, cách dùng xem trong tài liệu tham khảo G-series Lua API.docx
 	customAimingSettings = {
@@ -54,10 +57,10 @@ userInfo = {
 
 	G_bind = {
 		-- G Pro Wireless:
-		-- G2 = nút giữa (wheel click) -> bật/tắt script
+		-- G3 = nút giữa (wheel click) -> bật/tắt script
 		-- G4 = nút trái 1 -> chọn nhóm súng 5.56
 		-- G5 = nút trái 2 -> chọn nhóm súng 7.62
-		["G2"] = "toggle",
+		["G3"] = "toggle",
 		["G4"] = "5.56",
 		["G5"] = "7.62",
 	},
@@ -93,6 +96,7 @@ pubg = {
 	generalSensitivityRatio = userInfo.sensitivity.ADS / 100, -- Điều chỉnh độ nhạy theo tỷ lệ
 	isStart = false, -- Trạng thái đã bật hay chưa
 	G1 = false, -- Trạng thái phím G1
+	adsToggleOn = false, -- Trạng thái ngắm bật/tắt
 	currentTime = 0, -- Thời điểm hiện tại
 	bulletIndex = 0, -- Viên đạn thứ mấy
 }
@@ -113,8 +117,15 @@ function pubg.isAimingState (mode)
 
 		-- ADS
 		["ADS"] = function ()
+			if userInfo.alwaysOnRecoil then
+				return pubg.runStatus()
+			end
 			if userInfo.aimingSettings == "recommend" then
 				return IsMouseButtonPressed(3) and not IsModifierPressed("lshift")
+			elseif userInfo.aimingSettings == "always" then
+				return pubg.runStatus()
+			elseif userInfo.aimingSettings == "toggle" then
+				return pubg.adsToggleOn and not IsModifierPressed("lshift")
 			elseif userInfo.aimingSettings == "default" then
 				return not IsModifierPressed("lshift") and not IsModifierPressed("lalt")
 			elseif userInfo.aimingSettings == "ctrlmode" then
@@ -126,12 +137,19 @@ function pubg.isAimingState (mode)
 
 		-- Bắn hông
 		["Aim"] = function ()
+			if userInfo.alwaysOnRecoil then
+				return false
+			end
 			if userInfo.aimingSettings == "recommend" then
 				if userInfo.autoPressAimKey == "" then
 					return IsModifierPressed("lctrl")
 				else
 					return not IsModifierPressed("lshift") and not IsModifierPressed("lalt")
 				end
+			elseif userInfo.aimingSettings == "always" then
+				return false
+			elseif userInfo.aimingSettings == "toggle" then
+				return false
 			elseif userInfo.aimingSettings == "default" then
 				return IsMouseButtonPressed(3)
 			elseif userInfo.aimingSettings == "ctrlmode" then
@@ -365,7 +383,7 @@ function pubg.getRealY (options, y)
 		realY = y * userInfo.sensitivity.Aim * pubg.generalSensitivityRatio
 	end
 
-	if userInfo.aimingSettings == "ctrlmode" and IsModifierPressed("lctrl") then
+	if IsModifierPressed("lctrl") then
 		realY = realY * options.ctrlmodeRatio
 	end
 
@@ -375,13 +393,6 @@ end
 --[[ change pubg isStart status ]]
 function pubg.changeIsStart (isTrue)
 	pubg.isStart = isTrue
-	if isTrue then
-		SetBacklightColor(0, 255, 150, "kb")
-		SetBacklightColor(0, 255, 150, "mouse")
-	else
-		SetBacklightColor(255, 0, 90, "kb")
-		SetBacklightColor(255, 0, 90, "mouse")
-	end
 end
 
 --[[ set bullet type ]]
@@ -628,17 +639,56 @@ function pubg.PressOrRelaseAimKey (toggle)
 	end
 end
 
+function pubg.debugLog (fmt, a, b, c, d, e, f)
+	if userInfo.debug == 0 then return end
+	OutputLogMessage(fmt, a, b, c, d, e, f)
+end
+
+function pubg.logMessage (fmt, a, b, c, d, e, f)
+	if userInfo.debug == 0 then return end
+	OutputLogMessage(fmt, a, b, c, d, e, f)
+end
+
 --[[ Automatic press gun ]]
 function pubg.OnEvent_NoRecoil (event, arg, family)
+	if event == "MOUSE_BUTTON_PRESSED" and arg == 2 and family == "mouse" and userInfo.aimingSettings == "toggle" then
+		pubg.adsToggleOn = not pubg.adsToggleOn
+	end
+
 	if event == "MOUSE_BUTTON_PRESSED" and arg == 1 and family == "mouse" then
 		if not pubg.runStatus() then return false end
-		if userInfo.aimingSettings ~= "default" and not IsMouseButtonPressed(3) then
+		if not userInfo.alwaysOnRecoil and userInfo.aimingSettings == "recommend" and not IsMouseButtonPressed(3) then
 			pubg.PressOrRelaseAimKey(true)
 		end
 		if pubg.isAimingState("ADS") or pubg.isAimingState("Aim") then
+			pubg.debugLog("[RECOIL] START | ADS=%s | AIM=%s | bulletType=%s | gunIndex=%s\n",
+				tostring(pubg.isAimingState("ADS")),
+				tostring(pubg.isAimingState("Aim")),
+				tostring(pubg.bulletType),
+				tostring(pubg.gunIndex)
+			)
 			pubg.startTime = GetRunningTime()
 			pubg.G1 = true
 			SetMKeyState(1, "kb")
+			while IsMouseButtonPressed(1) and pubg.G1 do
+				if not (pubg.isAimingState("ADS") or pubg.isAimingState("Aim")) then
+					break
+				end
+				pubg.debugLog("[RECOIL] AUTO | bulletType=%s | gunIndex=%s | scope=%s\n",
+					tostring(pubg.bulletType),
+					tostring(pubg.gunIndex),
+					tostring(pubg.scope_current)
+				)
+				if pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex]) == false then
+					break
+				end
+			end
+		else
+			pubg.debugLog("[RECOIL] BLOCKED | ADS=%s | AIM=%s | runStatus=%s\n",
+				tostring(pubg.isAimingState("ADS")),
+				tostring(pubg.isAimingState("Aim")),
+				tostring(pubg.runStatus())
+			)
 		end
 	end
 
@@ -650,44 +700,53 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 		pubg.SetRandomseed() -- Reset random number seeds
 	end
 
-	if event == "M_PRESSED" and arg == 1 and pubg.G1 then
-		pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex])
-		SetMKeyState(1, "kb")
-	end
 end
 
 -- [[ processing instruction ]]
 function pubg.modifierHandle (modifier)
 	local cmd = userInfo.G_bind[modifier]
-	pubg.renderDom.combo_key = modifier -- Save combination keys
 
-	if (cmd) then
-		pubg.renderDom.cmd = cmd -- Save instruction name
-		pubg.runCmd(cmd) -- Execution instructions
+	if cmd then
+		pubg.runCmd(cmd)
+
+		pubg.logMessage(
+			"[BUTTON] %s -> %s | Status: %s | Gun: %s\n",
+			modifier,
+			cmd,
+			pubg.isStart and "ON" or "OFF",
+			pubg.bulletType
+		)
 	else
-		pubg.renderDom.cmd = ""
+		pubg.logMessage(
+			"[BUTTON] %s -> NOT BOUND\n",
+			modifier
+		)
 	end
-
-	pubg.outputLogRender() -- Call log rendering method to output information
 end
 
 --[[ Listener method ]]
 function OnEvent (event, arg, family)
 
-	-- OutputLogMessage("event = %s, arg = %s, family = %s\n", event, arg, family)
+	pubg.logMessage("[EVENT] event=%s | arg=%s | family=%s\n", event, arg, family)
 	-- console.log("event = " .. event .. ", arg = " .. arg .. ", family = " .. family)
 
 	pubg.OnEvent_NoRecoil(event, arg, family)
 
 	-- Switching arsenals according to different types of ammunition
 	if event == "MOUSE_BUTTON_PRESSED" and arg >=2 and arg <= 11 and family == "mouse" then
-		local modifier = "G" .. arg
-		local list = { "lalt", "lctrl", "lshift", "ralt", "rctrl", "rshift" }
+		-- On this mouse mapping: G2 = right click, G3 = middle click.
+		-- Ignore right click here so ADS does not get treated like a G-key bind.
+		if arg == 2 then return end
 
-		for i = 1, #list do
-			if IsModifierPressed(list[i]) then
-				modifier = list[i] .. " + " .. modifier
-				break
+		local modifier = "G" .. arg
+		if arg ~= 3 then
+			local list = { "lalt", "lctrl", "lshift", "ralt", "rctrl", "rshift" }
+
+			for i = 1, #list do
+				if IsModifierPressed(list[i]) then
+					modifier = list[i] .. " + " .. modifier
+					break
+				end
 			end
 		end
 
@@ -702,6 +761,7 @@ function OnEvent (event, arg, family)
 	-- Script deactivated event
 	if event == "PROFILE_DEACTIVATED" then
 		EnablePrimaryMouseButtonEvents(false)
+		pubg.adsToggleOn = false
 		ReleaseKey("lshift")
 		ReleaseKey("lctrl")
 		ReleaseKey("lalt")
