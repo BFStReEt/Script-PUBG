@@ -912,16 +912,18 @@ function table.print (val)
 	res = string.gsub(res, ",(%s*})", "%1")
 	res = string.gsub(res, ",(%s*)$", "%1")
 	res = string.gsub(res, "{%s+}", "{}")
-	OutputLogMessage(table.print(str) .. "\n")
-endleft mouse button event reporting
---[[ Other ]]
-EnablePrimaryMouseButtonEvents(true) -- Enable 
+
 	return res
 end
 
 -- console
 console = {}
 function console.log (str)
+	OutputLogMessage(table.print(str) .. "\n")
+end
+
+--[[ Other ]]
+EnablePrimaryMouseButtonEvents(true) -- Enable left mouse button event reporting
 pubg.GD = GetDate -- Setting aliases
 pubg.init() -- Script initialization
 
