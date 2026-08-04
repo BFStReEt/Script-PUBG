@@ -96,6 +96,7 @@ pubg = {
 	generalSensitivityRatio = userInfo.sensitivity.ADS / 100, -- Điều chỉnh độ nhạy theo tỷ lệ
 	isStart = false, -- Trạng thái đã bật hay chưa
 	G1 = false, -- Trạng thái phím G1
+	leftMouseDown = false, -- Trạng thái giữ chuột trái theo event
 	adsToggleOn = false, -- Trạng thái ngắm bật/tắt
 	currentTime = 0, -- Thời điểm hiện tại
 	bulletIndex = 0, -- Viên đạn thứ mấy
@@ -656,6 +657,7 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 	end
 
 	if event == "MOUSE_BUTTON_PRESSED" and arg == 1 and family == "mouse" then
+		pubg.leftMouseDown = true
 		if not pubg.runStatus() then return false end
 		if not userInfo.alwaysOnRecoil and userInfo.aimingSettings == "recommend" and not IsMouseButtonPressed(3) then
 			pubg.PressOrRelaseAimKey(true)
@@ -670,7 +672,7 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 			pubg.startTime = GetRunningTime()
 			pubg.G1 = true
 			SetMKeyState(1, "kb")
-			while IsMouseButtonPressed(1) and pubg.G1 do
+			while IsMouseButtonPressed(1) and pubg.G1 and pubg.runStatus() do
 				if not (pubg.isAimingState("ADS") or pubg.isAimingState("Aim")) then
 					break
 				end
@@ -693,6 +695,7 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 	end
 
 	if event == "MOUSE_BUTTON_RELEASED" and arg == 1 and family == "mouse" then
+		pubg.leftMouseDown = false
 		pubg.PressOrRelaseAimKey(false)
 		pubg.G1 = false
 		pubg.counter = 0 -- Initialization counter
@@ -909,18 +912,16 @@ function table.print (val)
 	res = string.gsub(res, ",(%s*})", "%1")
 	res = string.gsub(res, ",(%s*)$", "%1")
 	res = string.gsub(res, "{%s+}", "{}")
-
+	OutputLogMessage(table.print(str) .. "\n")
+endleft mouse button event reporting
+--[[ Other ]]
+EnablePrimaryMouseButtonEvents(true) -- Enable 
 	return res
 end
 
 -- console
 console = {}
 function console.log (str)
-	OutputLogMessage(table.print(str) .. "\n")
-end
-
---[[ Other ]]
-EnablePrimaryMouseButtonEvents(true) -- Enable left mouse button event reporting
 pubg.GD = GetDate -- Setting aliases
 pubg.init() -- Script initialization
 
