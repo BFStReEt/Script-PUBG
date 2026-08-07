@@ -390,7 +390,6 @@ function pubg.setBulletType (bulletType)
 		end
 	end
 
-	pubg.changeIsStart(true)
 end
 
 --[[ set current scope ]]
@@ -428,7 +427,6 @@ function pubg.setGun (gunName)
 
 	end
 
-	pubg.changeIsStart(true)
 end
 
 --[[ Consider all available firearms as an entire list ]]
