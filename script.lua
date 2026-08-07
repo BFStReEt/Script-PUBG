@@ -19,39 +19,26 @@ userInfo = {
 		scopeX6 = 2.3,
 	},
 
-	-- Tự động bắn hông, nếu không dùng thì để trống, nếu dùng thì đặt phím trên bàn phím
-	-- Auto aim, leave blank without auto aim, set as the key on the keyboard when using.
-	autoPressAimKey = "",
-
 	-- Always-on recoil mode: when true, recoil control only depends on script ON + left mouse hold.
 	alwaysOnRecoil = true,
 
-	-- Điều khiển bật/tắt (capslock - dùng phím Caps Lock | numlock - dùng Num Lock | G_bind - dùng lệnh) | Start up control
+	-- Lực kéo ngay khi bấm chuột trái, tránh viên đầu có recoil 0 nên không thấy kéo.
+	firstShotPull = 18,
+
+	-- Điều khiển bật/tắt bằng nút chuột đã bind trong G_bind.
 	startControl = "G_bind",
 
-	-- Thiết lập ngắm (always - luôn chạy chống giật khi script ON | default - giữ chuột phải | toggle - bấm bật/tắt ngắm | recommend - dùng thiết lập khuyến nghị của script | custom - tự định nghĩa | ctrlmode - chế độ ngồi) | Aiming setting
+	-- Thiết lập ngắm (always - luôn chạy chống giật khi script ON | default - giữ chuột phải | toggle - bấm bật/tắt ngắm | recommend - giữ chuột phải)
 	aimingSettings = "always",
-
-	-- Khi aimingSettings = "custom", cần đặt điều kiện tự định nghĩa ở đây, thường dùng cùng IsMouseButtonPressed hoặc IsModifierPressed, cách dùng xem trong tài liệu tham khảo G-series Lua API.docx
-	customAimingSettings = {
-		-- Điều kiện ADS
-		ADS = function ()
-			return false -- Điều kiện kiểm tra, giá trị trả về là boolean
-		end,
-		-- Điều kiện bắn hông
-		Aim = function ()
-			return false -- Điều kiện kiểm tra, giá trị trả về là boolean
-		end,
-	},
 
 	canUse = {
 		["5.56"] = {
-			-- Súng              Chế độ      Hệ số       Hệ số ngồi
-			{ "M416",           1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + báng súng + băng mở rộng | Komp + Reddot + Triangular grip + Gunstock + Mag
+			-- Súng              Chế độ      Hệ số
+			{ "M416",           1,          1 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + báng súng + băng mở rộng | Komp + Reddot + Triangular grip + Gunstock + Mag
 		},
 		["7.62"] = {
-			-- Súng              Chế độ      Hệ số       Hệ số ngồi
-			{ "Beryl M762",     1,          1,          0.8 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + băng mở rộng | Komp + Reddot + Triangular grip + Mag
+			-- Súng              Chế độ      Hệ số
+			{ "Beryl M762",     1,          1 }, -- Nòng bù giật + kính cơ bản + tay cầm tam giác + băng mở rộng | Komp + Reddot + Triangular grip + Mag
 		},
 	},
 
@@ -122,17 +109,13 @@ function pubg.isAimingState (mode)
 				return pubg.runStatus()
 			end
 			if userInfo.aimingSettings == "recommend" then
-				return IsMouseButtonPressed(3) and not IsModifierPressed("lshift")
+				return IsMouseButtonPressed(3)
 			elseif userInfo.aimingSettings == "always" then
 				return pubg.runStatus()
 			elseif userInfo.aimingSettings == "toggle" then
-				return pubg.adsToggleOn and not IsModifierPressed("lshift")
+				return pubg.adsToggleOn
 			elseif userInfo.aimingSettings == "default" then
-				return not IsModifierPressed("lshift") and not IsModifierPressed("lalt")
-			elseif userInfo.aimingSettings == "ctrlmode" then
-				return IsMouseButtonPressed(3) and not IsModifierPressed("lshift")
-			elseif userInfo.aimingSettings == "custom" then
-				return userInfo.customAimingSettings.ADS()
+				return IsMouseButtonPressed(3)
 			end
 		end,
 
@@ -142,21 +125,13 @@ function pubg.isAimingState (mode)
 				return false
 			end
 			if userInfo.aimingSettings == "recommend" then
-				if userInfo.autoPressAimKey == "" then
-					return IsModifierPressed("lctrl")
-				else
-					return not IsModifierPressed("lshift") and not IsModifierPressed("lalt")
-				end
+				return false
 			elseif userInfo.aimingSettings == "always" then
 				return false
 			elseif userInfo.aimingSettings == "toggle" then
 				return false
 			elseif userInfo.aimingSettings == "default" then
 				return IsMouseButtonPressed(3)
-			elseif userInfo.aimingSettings == "ctrlmode" then
-				return false
-			elseif userInfo.aimingSettings == "custom" then
-				return userInfo.customAimingSettings.Aim()
 			end
 		end,
 
@@ -276,7 +251,6 @@ function pubg.execOptions (gunName, options)
 		amount = #ballisticConfig2, -- Number of bullets
 		interval = options.interval, -- Time of each bullet
 		ballistic = ballisticConfig2, -- ballistic data
-		ctrlmodeRatio = gunInfo[4], -- Individual recoil coefficient for each gun when squatting
 	}
 
 end
@@ -335,13 +309,25 @@ function pubg.auto (options)
 
 	-- Accurate aiming press gun
 	pubg.currentTime = GetRunningTime()
-	pubg.bulletIndex = math.ceil(((pubg.currentTime - pubg.startTime == 0 and {1} or {pubg.currentTime - pubg.startTime})[1]) / options.interval) + 1
+	local elapsed = pubg.currentTime - pubg.startTime
+	if elapsed < 1 then elapsed = 1 end
+	pubg.bulletIndex = math.floor(elapsed / options.interval) + 1
+	if pubg.bulletIndex < 2 then pubg.bulletIndex = 2 end
 
-	if pubg.bulletIndex > options.amount then return false end
-	-- Developer Debugging Mode
-	local d = (IsKeyLockOn("scrolllock") and { (pubg.bulletIndex - 1) * pubg.xLengthForDebug } or { 0 })[1]
-	local x = math.ceil((pubg.currentTime - pubg.startTime) / (options.interval * (pubg.bulletIndex - 1)) * d) - pubg.xCounter
-	local y = math.ceil((pubg.currentTime - pubg.startTime) / (options.interval * (pubg.bulletIndex - 1)) * options.ballistic[pubg.bulletIndex]) - pubg.counter
+	local ballisticIndex = math.min(pubg.bulletIndex, options.amount)
+	local lastCounter = options.ballistic[options.amount]
+	local lastStep = lastCounter - options.ballistic[options.amount - 1]
+	local targetCounter = options.ballistic[ballisticIndex]
+
+	if pubg.bulletIndex > options.amount then
+		targetCounter = lastCounter + ((pubg.bulletIndex - options.amount) * lastStep)
+	end
+
+	local x = 0
+	local y = targetCounter - pubg.counter
+	if pubg.counter == 0 and y < userInfo.firstShotPull then y = userInfo.firstShotPull end
+	if y < 1 then y = 1 end
+
 	-- 4-fold pressure gun mode
 	local realY = pubg.getRealY(options, y)
 	MoveMouseRelative(x, realY)
@@ -351,25 +337,19 @@ function pubg.auto (options)
 	end
 
 	-- Real-time operation parameters
-	pubg.autoLog(options, y)
+	pubg.autoLog(options, y, targetCounter)
 	pubg.outputLogRender()
 
 	pubg.xCounter = pubg.xCounter + x
 	pubg.counter = pubg.counter + y
 
-	pubg.autoSleep(IsKeyLockOn("scrolllock"))
+	pubg.autoSleep()
 
 end
 
 --[[ Sleep of pubg.auto ]]
-function pubg.autoSleep (isTest)
-	local random = 0
-	if isTest then
-		-- When debugging mode is turned on, Turn off random delays in preventive testing
-		random = math.random(pubg.sleep, pubg.sleep)
-	else
-		random = math.random(pubg.sleepRandom[1], pubg.sleepRandom[2])
-	end
+function pubg.autoSleep ()
+	local random = math.random(pubg.sleepRandom[1], pubg.sleepRandom[2])
 	-- Sleep(10)
 	Sleep(random)
 end
@@ -382,10 +362,6 @@ function pubg.getRealY (options, y)
 		realY = y * pubg[pubg.scope_current]
 	elseif pubg.isAimingState("Aim") then
 		realY = y * userInfo.sensitivity.Aim * pubg.generalSensitivityRatio
-	end
-
-	if IsModifierPressed("lctrl") then
-		realY = realY * options.ctrlmodeRatio
 	end
 
 	return math.round(realY)
@@ -488,13 +464,7 @@ end
 
 --[[ Script running status ]]
 function pubg.runStatus ()
-	if userInfo.startControl == "capslock" then
-		return IsKeyLockOn("capslock")
-	elseif userInfo.startControl == "numlock" then
-		return IsKeyLockOn("numlock")
-	elseif userInfo.startControl == "G_bind" then
-		return pubg.isStart
-	end
+	return pubg.isStart
 end
 
 --[[ Độ lệch ngẫu nhiên ]]
@@ -563,7 +533,7 @@ end
 function pubg.outputLogGunSwitchTable ()
 	local forList = { "5.56", "7.62" }
 	local allCount = 0
-	local resStr = "      canUse_i\t      series_i\t      Series\t      ratio\t      ctrl ratio\t      Gun Name\n\n"
+	local resStr = "      canUse_i\t      series_i\t      Series\t      ratio\t      Gun Name\n\n"
 
 	for i = 1, #forList do
 		local type = forList[i]
@@ -575,7 +545,7 @@ function pubg.outputLogGunSwitchTable ()
 				local tag = gunName == pubg.gun[pubg.bulletType][pubg.gunIndex] and "=> " or "      "
 				gunCount = gunCount + 1
 				allCount = allCount + 1
-				resStr = table.concat({ resStr, tag, allCount, "\t", tag, gunCount, "\t", tag, type, "\t", tag, userInfo.canUse[type][j][3], "\t", tag, userInfo.canUse[type][j][4], "\t", tag, gunName, "\n" })
+				resStr = table.concat({ resStr, tag, allCount, "\t", tag, gunCount, "\t", tag, type, "\t", tag, userInfo.canUse[type][j][3], "\t", tag, gunName, "\n" })
 			end
 		end
 
@@ -619,25 +589,15 @@ function pubg.outputLogRecoilTable ()
 end
 
 --[[ log of pubg.auto ]]
-function pubg.autoLog (options, y)
+function pubg.autoLog (options, y, targetCounter)
 	pubg.renderDom.autoLog = table.concat({
 		"----------------------------------- Automatically counteracting gun recoil -----------------------------------\n",
 		"------------------------------------------------------------------------------------------------------------------------------\n",
-		"bullet index: ", pubg.bulletIndex, "    target counter: ", options.ballistic[pubg.bulletIndex], "    current counter: ", pubg.counter, "\n",
-		"D-value(target - current): ", options.ballistic[pubg.bulletIndex], " - ", pubg.counter, " = ", options.ballistic[pubg.bulletIndex] - pubg.counter, "\n",
-		"move: math.ceil((", pubg.currentTime, " - ", pubg.startTime, ") / (", options.interval, " * (", pubg.bulletIndex, " - 1)) * ", options.ballistic[pubg.bulletIndex], ") - ", pubg.counter, " = ", y, "\n",
+		"bullet index: ", pubg.bulletIndex, "    target counter: ", targetCounter, "    current counter: ", pubg.counter, "\n",
+		"D-value(target - current): ", targetCounter, " - ", pubg.counter, " = ", targetCounter - pubg.counter, "\n",
+		"move: ", targetCounter, " - ", pubg.counter, " = ", y, "\n",
 		"------------------------------------------------------------------------------------------------------------------------------\n",
 	})
-end
-
-function pubg.PressOrRelaseAimKey (toggle)
-	if userInfo.autoPressAimKey ~= "" then
-		if toggle then
-			PressKey(userInfo.autoPressAimKey)
-		else
-			ReleaseKey(userInfo.autoPressAimKey)
-		end
-	end
 end
 
 function pubg.debugLog (fmt, a, b, c, d, e, f)
@@ -659,44 +619,25 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 	if event == "MOUSE_BUTTON_PRESSED" and arg == 1 and family == "mouse" then
 		pubg.leftMouseDown = true
 		if not pubg.runStatus() then return false end
-		if not userInfo.alwaysOnRecoil and userInfo.aimingSettings == "recommend" and not IsMouseButtonPressed(3) then
-			pubg.PressOrRelaseAimKey(true)
-		end
-		if pubg.isAimingState("ADS") or pubg.isAimingState("Aim") then
-			pubg.debugLog("[RECOIL] START | ADS=%s | AIM=%s | bulletType=%s | gunIndex=%s\n",
-				tostring(pubg.isAimingState("ADS")),
-				tostring(pubg.isAimingState("Aim")),
+		pubg.debugLog("[RECOIL] START | bulletType=%s | gunIndex=%s\n",
+			tostring(pubg.bulletType),
+			tostring(pubg.gunIndex)
+		)
+		pubg.startTime = GetRunningTime()
+		pubg.G1 = true
+		pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex])
+		while IsMouseButtonPressed(1) and pubg.G1 and pubg.runStatus() do
+			pubg.debugLog("[RECOIL] AUTO | bulletType=%s | gunIndex=%s | scope=%s\n",
 				tostring(pubg.bulletType),
-				tostring(pubg.gunIndex)
+				tostring(pubg.gunIndex),
+				tostring(pubg.scope_current)
 			)
-			pubg.startTime = GetRunningTime()
-			pubg.G1 = true
-			SetMKeyState(1, "kb")
-			while IsMouseButtonPressed(1) and pubg.G1 and pubg.runStatus() do
-				if not (pubg.isAimingState("ADS") or pubg.isAimingState("Aim")) then
-					break
-				end
-				pubg.debugLog("[RECOIL] AUTO | bulletType=%s | gunIndex=%s | scope=%s\n",
-					tostring(pubg.bulletType),
-					tostring(pubg.gunIndex),
-					tostring(pubg.scope_current)
-				)
-				if pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex]) == false then
-					break
-				end
-			end
-		else
-			pubg.debugLog("[RECOIL] BLOCKED | ADS=%s | AIM=%s | runStatus=%s\n",
-				tostring(pubg.isAimingState("ADS")),
-				tostring(pubg.isAimingState("Aim")),
-				tostring(pubg.runStatus())
-			)
+			pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex])
 		end
 	end
 
 	if event == "MOUSE_BUTTON_RELEASED" and arg == 1 and family == "mouse" then
 		pubg.leftMouseDown = false
-		pubg.PressOrRelaseAimKey(false)
 		pubg.G1 = false
 		pubg.counter = 0 -- Initialization counter
 		pubg.xCounter = 0 -- Initialization xCounter
@@ -742,21 +683,6 @@ function OnEvent (event, arg, family)
 		if arg == 2 then return end
 
 		local modifier = "G" .. arg
-		if arg ~= 3 then
-			local list = { "lalt", "lctrl", "lshift", "ralt", "rctrl", "rshift" }
-
-			for i = 1, #list do
-				if IsModifierPressed(list[i]) then
-					modifier = list[i] .. " + " .. modifier
-					break
-				end
-			end
-		end
-
-		pubg.modifierHandle(modifier)
-	elseif event == "G_PRESSED" and arg >=1 and arg <= 12 then
-		-- if not pubg.runStatus() and userInfo.startControl ~= "G_bind" then return false end
-		local modifier = "F" .. arg
 
 		pubg.modifierHandle(modifier)
 	end
@@ -765,12 +691,6 @@ function OnEvent (event, arg, family)
 	if event == "PROFILE_DEACTIVATED" then
 		EnablePrimaryMouseButtonEvents(false)
 		pubg.adsToggleOn = false
-		ReleaseKey("lshift")
-		ReleaseKey("lctrl")
-		ReleaseKey("lalt")
-		ReleaseKey("rshift")
-		ReleaseKey("rctrl")
-		ReleaseKey("ralt")
 		ClearLog()
 	end
 
