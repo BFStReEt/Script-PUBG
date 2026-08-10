@@ -1,7 +1,7 @@
 userInfo = {
 	debug = 1,
 
-	cpuLoad = 2,
+	cpuLoad = 5,
 
 	-- Điều chỉnh độ nhạy | Sensitivity adjustment
 	sensitivity = {
@@ -23,7 +23,10 @@ userInfo = {
 	alwaysOnRecoil = true,
 
 	-- Lực kéo ngay khi bấm chuột trái, tránh viên đầu có recoil 0 nên không thấy kéo.
-	firstShotPull = 18,
+	firstShotPull = 6,
+
+	-- Giãn log khi đang kéo để chuột mượt hơn.
+	autoLogInterval = 120,
 
 	-- Điều khiển bật/tắt bằng nút chuột đã bind trong G_bind.
 	startControl = "G_bind",
@@ -71,7 +74,7 @@ pubg = {
 	counter = 0, -- Bộ đếm
 	xCounter = 0, -- Bộ đếm trục x
 	sleep = userInfo.cpuLoad, -- Thiết lập tần suất (không được đặt 0, debug sẽ lỗi)
-	sleepRandom = { userInfo.cpuLoad, userInfo.cpuLoad + 5 }, -- Độ trễ ngẫu nhiên để tránh bị phát hiện
+	sleepRandom = { userInfo.cpuLoad, userInfo.cpuLoad }, -- Độ trễ cố định để chuyển động mượt hơn
 	startTime = 0, -- Ghi thời điểm script bắt đầu khi nhấn chuột
 	prevTime = 0, -- Ghi thời điểm của vòng chạy trước
 	scopeX1 = 1, -- Hệ số chống giật cho ngắm cơ bản (kính trần, red dot, holo, ngắm nghiêng)
@@ -87,6 +90,7 @@ pubg = {
 	adsToggleOn = false, -- Trạng thái ngắm bật/tắt
 	currentTime = 0, -- Thời điểm hiện tại
 	bulletIndex = 0, -- Viên đạn thứ mấy
+	lastAutoLogTime = 0, -- Thời điểm log auto gần nhất
 }
 
 pubg.xLengthForDebug = pubg.generalSensitivityRatio * 30 -- Độ dài đơn vị di chuyển ngang trong chế độ debug
@@ -324,21 +328,27 @@ function pubg.auto (options)
 	end
 
 	local x = 0
-	local y = targetCounter - pubg.counter
+	local smoothCounter = math.ceil(elapsed / (options.interval * (pubg.bulletIndex - 1)) * targetCounter)
+	local y = smoothCounter - pubg.counter
 	if pubg.counter == 0 and y < userInfo.firstShotPull then y = userInfo.firstShotPull end
-	if y < 1 then y = 1 end
+	if y < 0 then y = 0 end
 
 	-- 4-fold pressure gun mode
 	local realY = pubg.getRealY(options, y)
-	MoveMouseRelative(x, realY)
+	if x ~= 0 or realY ~= 0 then
+		MoveMouseRelative(x, realY)
+	end
 	-- Whether to issue automatically or not
 	if options.autoContinuousFiring == 1 then
 		PressAndReleaseMouseButton(1)
 	end
 
 	-- Real-time operation parameters
-	pubg.autoLog(options, y, targetCounter)
-	pubg.outputLogRender()
+	if userInfo.debug ~= 0 and pubg.currentTime - pubg.lastAutoLogTime >= userInfo.autoLogInterval then
+		pubg.autoLog(options, y, targetCounter, smoothCounter)
+		pubg.outputLogRender()
+		pubg.lastAutoLogTime = pubg.currentTime
+	end
 
 	pubg.xCounter = pubg.xCounter + x
 	pubg.counter = pubg.counter + y
@@ -587,13 +597,13 @@ function pubg.outputLogRecoilTable ()
 end
 
 --[[ log of pubg.auto ]]
-function pubg.autoLog (options, y, targetCounter)
+function pubg.autoLog (options, y, targetCounter, smoothCounter)
 	pubg.renderDom.autoLog = table.concat({
 		"----------------------------------- Automatically counteracting gun recoil -----------------------------------\n",
 		"------------------------------------------------------------------------------------------------------------------------------\n",
-		"bullet index: ", pubg.bulletIndex, "    target counter: ", targetCounter, "    current counter: ", pubg.counter, "\n",
-		"D-value(target - current): ", targetCounter, " - ", pubg.counter, " = ", targetCounter - pubg.counter, "\n",
-		"move: ", targetCounter, " - ", pubg.counter, " = ", y, "\n",
+		"bullet index: ", pubg.bulletIndex, "    target counter: ", targetCounter, "    smooth counter: ", smoothCounter, "    current counter: ", pubg.counter, "\n",
+		"D-value(smooth - current): ", smoothCounter, " - ", pubg.counter, " = ", smoothCounter - pubg.counter, "\n",
+		"move: ", smoothCounter, " - ", pubg.counter, " = ", y, "\n",
 		"------------------------------------------------------------------------------------------------------------------------------\n",
 	})
 end
@@ -625,11 +635,6 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 		pubg.G1 = true
 		pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex])
 		while IsMouseButtonPressed(1) and pubg.G1 and pubg.runStatus() do
-			pubg.debugLog("[RECOIL] AUTO | bulletType=%s | gunIndex=%s | scope=%s\n",
-				tostring(pubg.bulletType),
-				tostring(pubg.gunIndex),
-				tostring(pubg.scope_current)
-			)
 			pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex])
 		end
 	end
@@ -639,6 +644,7 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 		pubg.G1 = false
 		pubg.counter = 0 -- Initialization counter
 		pubg.xCounter = 0 -- Initialization xCounter
+		pubg.lastAutoLogTime = 0 -- Reset auto log throttle
 		pubg.SetRandomseed() -- Reset random number seeds
 	end
 
