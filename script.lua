@@ -1,7 +1,10 @@
 userInfo = {
 	debug = 1,
 
-	cpuLoad = 5,
+	cpuLoad = 2,
+
+	-- Giảm lực kéo: 1 = như cũ, 0.95 = nhẹ hơn 5%, 0.9 = nhẹ hơn 10%.
+	recoilScale = 0.95,
 
 	-- Điều chỉnh độ nhạy | Sensitivity adjustment
 	sensitivity = {
@@ -23,7 +26,7 @@ userInfo = {
 	alwaysOnRecoil = true,
 
 	-- Lực kéo ngay khi bấm chuột trái, tránh viên đầu có recoil 0 nên không thấy kéo.
-	firstShotPull = 6,
+	firstShotPull = 0,
 
 	-- Giãn log khi đang kéo để chuột mượt hơn.
 	autoLogInterval = 120,
@@ -74,7 +77,7 @@ pubg = {
 	counter = 0, -- Bộ đếm
 	xCounter = 0, -- Bộ đếm trục x
 	sleep = userInfo.cpuLoad, -- Thiết lập tần suất (không được đặt 0, debug sẽ lỗi)
-	sleepRandom = { userInfo.cpuLoad, userInfo.cpuLoad }, -- Độ trễ cố định để chuyển động mượt hơn
+	sleepRandom = { userInfo.cpuLoad, userInfo.cpuLoad + 5 }, -- Độ trễ ngẫu nhiên như bản đầu
 	startTime = 0, -- Ghi thời điểm script bắt đầu khi nhấn chuột
 	prevTime = 0, -- Ghi thời điểm của vòng chạy trước
 	scopeX1 = 1, -- Hệ số chống giật cho ngắm cơ bản (kính trần, red dot, holo, ngắm nghiêng)
@@ -87,6 +90,10 @@ pubg = {
 	isStart = false, -- Trạng thái đã bật hay chưa
 	G1 = false, -- Trạng thái phím G1
 	leftMouseDown = false, -- Trạng thái giữ chuột trái theo event
+	leftMouseDownTime = 0, -- Thời điểm nhấn chuột trái
+	leftMouseUpTime = 0, -- Thời điểm nhả chuột trái
+	lastClickHoldTime = 0, -- Thời gian giữ chuột trái gần nhất
+	autoLoopCount = 0, -- Số vòng auto chạy trong lần giữ chuột hiện tại
 	adsToggleOn = false, -- Trạng thái ngắm bật/tắt
 	currentTime = 0, -- Thời điểm hiện tại
 	bulletIndex = 0, -- Viên đạn thứ mấy
@@ -330,7 +337,7 @@ function pubg.auto (options)
 	local x = 0
 	local smoothCounter = math.ceil(elapsed / (options.interval * (pubg.bulletIndex - 1)) * targetCounter)
 	local y = smoothCounter - pubg.counter
-	if pubg.counter == 0 and y < userInfo.firstShotPull then y = userInfo.firstShotPull end
+	if userInfo.firstShotPull > 0 and pubg.counter == 0 and y < userInfo.firstShotPull then y = userInfo.firstShotPull end
 	if y < 0 then y = 0 end
 
 	-- 4-fold pressure gun mode
@@ -364,6 +371,19 @@ function pubg.autoSleep ()
 	Sleep(random)
 end
 
+function pubg.waitLeftMousePressed (timeout)
+	local startTime = GetRunningTime()
+
+	while GetRunningTime() - startTime <= timeout do
+		if IsMouseButtonPressed(1) then
+			return true
+		end
+		Sleep(1)
+	end
+
+	return false
+end
+
 --[[ get real y position ]]
 function pubg.getRealY (options, y)
 	local realY = y
@@ -374,7 +394,7 @@ function pubg.getRealY (options, y)
 		realY = y * userInfo.sensitivity.Aim * pubg.generalSensitivityRatio
 	end
 
-	return math.round(realY)
+	return math.round(realY * userInfo.recoilScale)
 end
 
 --[[ change pubg isStart status ]]
@@ -626,6 +646,12 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 
 	if event == "MOUSE_BUTTON_PRESSED" and arg == 1 and family == "mouse" then
 		pubg.leftMouseDown = true
+		pubg.leftMouseDownTime = GetRunningTime()
+		pubg.logMessage("[CLICK] LEFT DOWN | t=%sms | Status=%s | Gun=%s\n",
+			tostring(pubg.leftMouseDownTime),
+			pubg.runStatus() and "ON" or "OFF",
+			tostring(pubg.gun[pubg.bulletType][pubg.gunIndex])
+		)
 		if not pubg.runStatus() then return false end
 		pubg.debugLog("[RECOIL] START | bulletType=%s | gunIndex=%s\n",
 			tostring(pubg.bulletType),
@@ -633,14 +659,37 @@ function pubg.OnEvent_NoRecoil (event, arg, family)
 		)
 		pubg.startTime = GetRunningTime()
 		pubg.G1 = true
-		pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex])
+		pubg.autoLoopCount = 0
+
+		if not pubg.waitLeftMousePressed(25) then
+			pubg.logMessage("[RECOIL] SKIP | reason=left_button_state_not_ready | wait=25ms\n")
+			return false
+		end
+
 		while IsMouseButtonPressed(1) and pubg.G1 and pubg.runStatus() do
+			pubg.autoLoopCount = pubg.autoLoopCount + 1
 			pubg.auto(pubg.gunOptions[pubg.bulletType][pubg.gunIndex])
 		end
 	end
 
 	if event == "MOUSE_BUTTON_RELEASED" and arg == 1 and family == "mouse" then
 		pubg.leftMouseDown = false
+		pubg.leftMouseUpTime = GetRunningTime()
+		if pubg.leftMouseDownTime > 0 then
+			pubg.lastClickHoldTime = pubg.leftMouseUpTime - pubg.leftMouseDownTime
+		else
+			pubg.lastClickHoldTime = 0
+		end
+		pubg.logMessage("[CLICK] LEFT UP | t=%sms | hold=%sms | Status=%s | Gun=%s\n",
+			tostring(pubg.leftMouseUpTime),
+			tostring(pubg.lastClickHoldTime),
+			pubg.runStatus() and "ON" or "OFF",
+			tostring(pubg.gun[pubg.bulletType][pubg.gunIndex])
+		)
+		pubg.logMessage("[RECOIL] END | loops=%s | hold=%sms\n",
+			tostring(pubg.autoLoopCount),
+			tostring(pubg.lastClickHoldTime)
+		)
 		pubg.G1 = false
 		pubg.counter = 0 -- Initialization counter
 		pubg.xCounter = 0 -- Initialization xCounter
