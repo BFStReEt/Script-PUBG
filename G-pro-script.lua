@@ -1,5 +1,5 @@
 userInfo = {
-	debug = 1,
+	debug = 0,
 
 	cpuLoad = 2,
 
